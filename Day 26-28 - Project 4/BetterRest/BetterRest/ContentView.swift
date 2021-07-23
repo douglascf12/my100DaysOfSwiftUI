@@ -7,14 +7,36 @@
 
 import SwiftUI
 
+struct drawText: ViewModifier {
+    let font = Font.system(size: 20, weight: .heavy, design: .default)
+    
+    func body(content: Content) -> some View {
+        content
+            .font(font)
+    }
+}
+
+struct DrawHorizontalText: View {
+    var text: String
+    var textResult: String
+    
+    var body: some View {
+        HStack {
+            Text(text)
+                .modifier(drawText())
+                .foregroundColor(.blue)
+            
+            Text(textResult)
+                .modifier(drawText())
+                .foregroundColor(.red)
+        }
+    }
+}
+
 struct ContentView: View {
     @State private var wakeUp = defaultWakeTime
     @State private var sleepAmount = 8.0
     @State private var coffeeAmount = 1
-    
-    @State private var alertTitle = ""
-    @State private var alertMessage = ""
-    @State private var showingAlert = false
     
     static var defaultWakeTime: Date {
         var components = DateComponents()
@@ -23,53 +45,41 @@ struct ContentView: View {
         return Calendar.current.date(from: components) ?? Date()
     }
     
+    private let rangeOfCoffee = 1...20
+    
+    private var recomendedBadTime: String {
+        calculateBedtime()
+    }
+    
     var body: some View {
         NavigationView {
             Form {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("When do you want to wake up?")
-                        .font(.headline)
-                    
+                Section(header: Text("When do you want to wake up?")) {
                     DatePicker("Please enter a time", selection: $wakeUp, displayedComponents: .hourAndMinute)
                         .labelsHidden()
                         .datePickerStyle(WheelDatePickerStyle())
                 }
                 
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("Desired amount of sleep")
-                        .font(.headline)
-                    
+                Section(header: Text("Desired amount of sleep")) {
                     Stepper(value: $sleepAmount, in: 4...12, step: 0.25) {
                         Text("\(sleepAmount, specifier: "%g") hours")
                     }
                 }
                 
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("Daily coffe intake")
-                        .font(.headline)
-                    
-                    Stepper(value: $coffeeAmount, in: 1...20) {
-                        if coffeeAmount == 1 {
-                            Text("1 cup")
-                        } else {
-                            Text("\(coffeeAmount) cups")
+                Section(header: Text("Daily coffe intake")) {
+                    Picker("Daily coffee intake", selection: $coffeeAmount) {
+                        ForEach(rangeOfCoffee, id: \.self) {
+                            Text($0 == 1 ? "1 cup" : "\($0) cups")
                         }
                     }
                 }
+                DrawHorizontalText(text: "Your ideal bedtime is:", textResult: "\(recomendedBadTime)")
             }
             .navigationBarTitle("BetterRest")
-            .navigationBarItems(trailing:
-                Button(action: calculateBedtime) {
-                    Text("Calculate")
-                }
-            )
-            .alert(isPresented: $showingAlert) {
-                Alert(title: Text(alertTitle), message: Text(alertMessage), dismissButton: .default(Text("OK")))
-            }
         }
     }
     
-    func calculateBedtime() {
+    func calculateBedtime() -> String {
         let model = SleepCalculator()
         
         let components = Calendar.current.dateComponents([.hour, .minute], from: wakeUp)
@@ -84,14 +94,10 @@ struct ContentView: View {
             let formatter = DateFormatter()
             formatter.timeStyle = .short
             
-            alertTitle = "Your ideal bedtime is..."
-            alertMessage =  formatter.string(from: sleepTime)
+            return formatter.string(from: sleepTime)
         } catch {
-            alertTitle = "Error"
-            alertMessage = "Sorry, there was a problem calculating your bedtime."
+            return "Error"
         }
-        
-        showingAlert = true
     }
 }
 
