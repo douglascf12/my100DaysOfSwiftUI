@@ -30,6 +30,10 @@ struct ContentView: View {
     @State private var scoreTitle = ""
     @State private var messageAlert = ""
     @State private var score = 0
+    @State private var isCorrect = false
+    @State private var selectedNumber = 0
+    @State private var isFadeOutOpacity = false
+    @State private var isWrong = false
     
     var body: some View {
         ZStack {
@@ -48,10 +52,15 @@ struct ContentView: View {
                 
                 ForEach(0 ..< 3) { number in
                     Button(action: {
-                        self.flagTapped(number)
+                        withAnimation {
+                            self.flagTapped(number)
+                        }
                     }) {
                         FlagImage(show: self.countries[number])
                     }
+                    .rotation3DEffect(.degrees(self.isCorrect && self.selectedNumber == number ? 360 : 0), axis: (x: 0, y: 1, z: 0))
+                    .opacity(isFadeOutOpacity && selectedNumber != number ? 0.25 : 1)
+                    .rotation3DEffect(.degrees(isWrong && selectedNumber == number ? 90 : 0), axis: (x: 0, y: 0, z: 0.5))
                 }
                 
                 Text("Your score is \(score)")
@@ -69,22 +78,32 @@ struct ContentView: View {
     }
     
     func flagTapped(_ number: Int) {
+        selectedNumber = number
         if number == correctAnswer {
             scoreTitle = "Correct"
             messageAlert = "Congratulations! You guessed the flag."
             score += 1
+            isCorrect = true
+            isFadeOutOpacity = true
         } else {
             scoreTitle = "Wrong"
             messageAlert = "That’s the flag of \(countries[number])."
             score -= 1
+            isWrong = true
+            isFadeOutOpacity = true
         }
         
-        showingScore = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            showingScore = true
+        }
     }
     
     func askQuestion() {
         countries.shuffle()
         correctAnswer = Int.random(in: 0...2)
+        isCorrect = false
+        isFadeOutOpacity = false
+        isWrong = false
     }
 }
 
